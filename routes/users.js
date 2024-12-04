@@ -177,4 +177,47 @@ router.post('/profile-photo', protect, async (req, res) => {
   }
 });
 
+// Add this route to your existing routes
+router.post('/send-email/:userId', protect, async (req, res) => {
+  try {
+    const { subject, message } = req.body;
+    const user = await User.findById(req.params.userId);
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Send email using nodemailer
+    const transporter = nodemailer.createTransport({
+      service: process.env.EMAIL_SERVICE,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: user.email,
+      subject: subject,
+      text: message
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json({ success: true, message: 'Email sent successfully' });
+  } catch (error) {
+    console.error('Detailed email error:', {
+      message: error.message,
+      stack: error.stack,
+      response: error.response
+    });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error sending email',
+      error: error.message 
+    });
+  }
+});
+
 module.exports = router; 
